@@ -24,6 +24,7 @@ import { getParser } from "../ai/parser.js";
 import { requestOtp, verifyOtp } from "../auth/service.js";
 import { requireAuth } from "../auth/middleware.js";
 import { rateLimit } from "./rateLimit.js";
+import { errorHandler } from "./errorHandler.js";
 
 export const app = express();
 app.use(express.json());
@@ -209,3 +210,5 @@ app.get("/requirements/:id/smart-match", async (req, res) => {
   }
   res.json(ranked);
 });
+
+app.use(errorHandler);
