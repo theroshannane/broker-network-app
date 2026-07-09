@@ -2,6 +2,13 @@ import express from "express";
 import { z } from "zod";
 import { createBroker } from "../brokers/service.js";
 import { createListing, searchListings } from "../listings/service.js";
+import {
+  requestContact,
+  approveRequest,
+  getRequest,
+  getRevealForRequest,
+  queuePosition,
+} from "../requests/service.js";
 
 export const app = express();
 app.use(express.json());
@@ -50,4 +57,49 @@ app.get("/listings", async (req, res) => {
     : undefined;
   const results = await searchListings({ locality, txn });
   res.json(results);
+});
+
+const requestSchema = z.object({
+  requesterId: z.uuid(),
+});
+
+app.post("/listings/:id/requests", async (req, res) => {
+  const parsed = requestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  const r = await requestContact({
+    listingId: req.params.id,
+    requesterId: parsed.data.requesterId,
+  });
+  res.status(201).json({ id: r.id, status: r.status, slaExpiresAt: r.slaExpiresAt });
+});
+
+app.post("/requests/:id/approve", async (req, res) => {
+  const r = await approveRequest(req.params.id);
+  if (!r) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.json({ id: r.id, status: r.status });
+});
+
+app.get("/requests/:id/contact", async (req, res) => {
+  const reveal = await getRevealForRequest(req.params.id);
+  if (!reveal) {
+    res.status(403).json({ error: "not approved" });
+    return;
+  }
+  res.json(reveal);
+});
+
+app.get("/requests/:id", async (req, res) => {
+  const r = await getRequest(req.params.id);
+  if (!r) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  const pos = await queuePosition(req.params.id);
+  res.json({ id: r.id, status: r.status, queuePosition: pos });
 });

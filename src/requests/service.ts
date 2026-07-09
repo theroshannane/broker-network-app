@@ -1,6 +1,6 @@
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, lte } from "drizzle-orm";
 import { db } from "../db/client.js";
-import { contactRequests } from "../db/schema.js";
+import { contactRequests, listings, brokers } from "../db/schema.js";
 
 const DEFAULT_SLA_HOURS = 48;
 
@@ -30,7 +30,7 @@ export async function approveRequest(id: string) {
     .set({ status: "approved" })
     .where(eq(contactRequests.id, id))
     .returning();
-  return row;
+  return row ?? null;
 }
 
 export async function getRequest(id: string) {
@@ -39,6 +39,40 @@ export async function getRequest(id: string) {
     .from(contactRequests)
     .where(eq(contactRequests.id, id));
   return row ?? null;
+}
+
+// Owner contact for a request, revealed only when the request is approved.
+export async function getRevealForRequest(id: string) {
+  const req = await getRequest(id);
+  if (!req || req.status !== "approved") return null;
+  const [listing] = await db
+    .select()
+    .from(listings)
+    .where(eq(listings.id, req.listingId));
+  if (!listing) return null;
+  const [owner] = await db
+    .select()
+    .from(brokers)
+    .where(eq(brokers.id, listing.brokerId));
+  if (!owner) return null;
+  return { phone: owner.phone, name: owner.name, agencyName: owner.agencyName };
+}
+
+// 1-based position among still-pending requests on the same listing, by creation order.
+export async function queuePosition(id: string) {
+  const req = await getRequest(id);
+  if (!req) return null;
+  const earlier = await db
+    .select()
+    .from(contactRequests)
+    .where(
+      and(
+        eq(contactRequests.listingId, req.listingId),
+        eq(contactRequests.status, "pending"),
+        lte(contactRequests.createdAt, req.createdAt),
+      ),
+    );
+  return earlier.length;
 }
 
 // Marks past-SLA pending requests as expired. Returns count expired.
