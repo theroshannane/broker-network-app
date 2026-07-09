@@ -780,9 +780,9 @@ git commit -m "feat: http api for brokers and listings"
 
 ## Follow-on Plans (not in this scope)
 
-1. Contact-request HTTP endpoints + reveal-payload gating + queue position.
-2. Saved-requirement profiles + alert matching.
-3. AI listing parser (LLM extract) + AI Smart Match (embeddings + pgvector).
-4. Real Surepass RERA + Aadhaar/PAN KYC adapters replacing the stub.
-5. Mobile app (Expo) and Next.js web (onboarding, admin, SEO listing pages).
-6. Scheduled SLA sweep runner (cron/worker) calling `sweepExpired`.
+1. [DONE 862bfa5] Contact-request HTTP endpoints + reveal-payload gating + queue position.
+2. [DONE 8e84683] Saved-requirement profiles + alert matching.
+3. [DONE 7c87b69 / 1074c89] AI listing parser (heuristic now; LLM adapter env-gated via `getParser`) + AI Smart Match (heuristic weighted scorer now; pgvector embeddings env-gated via `getMatcher`).
+4. [DONE 2116599] Surepass RERA adapter (env-gated via `SUREPASS_API_TOKEN`, `getVerificationProvider`) replacing the stub. Aadhaar/PAN KYC extends the same `VerificationProvider` interface.
+5. Mobile app (Expo) and Next.js web (onboarding, admin, SEO listing pages). SEPARATE TRACK — large frontend effort, own session.
+6. [DONE a381911] Scheduled SLA sweep runner (`startSweep`) calling `sweepExpired`.
