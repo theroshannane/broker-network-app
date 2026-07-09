@@ -54,6 +54,11 @@ export async function countListings(input: SearchInput): Promise<number> {
   return row?.total ?? 0;
 }
 
+export async function getListingById(id: string) {
+  const [row] = await db.select().from(listings).where(eq(listings.id, id));
+  return row ?? null;
+}
+
 export async function closeListing(id: string) {
   const [row] = await db
     .update(listings)

@@ -1,7 +1,7 @@
 import { beforeEach, afterAll, describe, expect, it } from "vitest";
 import { resetDb, closePool } from "../test/setup.js";
 import { createBroker } from "../brokers/service.js";
-import { createListing, searchListings, countListings, closeListing } from "./service.js";
+import { createListing, searchListings, countListings, closeListing, getListingById } from "./service.js";
 
 beforeEach(resetDb);
 afterAll(closePool);
@@ -66,5 +66,19 @@ describe("listing service", () => {
     const page = await searchListings({ locality: "Vikhroli", limit: 1, offset: 0 });
     expect(total).toBe(3);
     expect(page).toHaveLength(1);
+  });
+
+  it("getListingById returns the listing", async () => {
+    const b = await seedBroker();
+    const l = await createListing({
+      brokerId: b.id, txn: "rent", locality: "Byculla", pincode: "400027", budget: 25000,
+    });
+    const fetched = await getListingById(l.id);
+    expect(fetched?.id).toBe(l.id);
+  });
+
+  it("getListingById returns null for missing id", async () => {
+    const fetched = await getListingById("00000000-0000-0000-0000-000000000000");
+    expect(fetched).toBeNull();
   });
 });

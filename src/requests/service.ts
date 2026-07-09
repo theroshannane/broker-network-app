@@ -75,6 +75,27 @@ export async function queuePosition(id: string) {
   return earlier.length;
 }
 
+// Pending contact requests on listings owned by this broker.
+export async function getIncomingRequestsForBroker(brokerId: string) {
+  return db
+    .select({
+      id: contactRequests.id,
+      listingId: contactRequests.listingId,
+      requesterId: contactRequests.requesterId,
+      status: contactRequests.status,
+      slaExpiresAt: contactRequests.slaExpiresAt,
+      createdAt: contactRequests.createdAt,
+    })
+    .from(contactRequests)
+    .innerJoin(listings, eq(listings.id, contactRequests.listingId))
+    .where(
+      and(
+        eq(listings.brokerId, brokerId),
+        eq(contactRequests.status, "pending"),
+      ),
+    );
+}
+
 // Marks past-SLA pending requests as expired. Returns count expired.
 export async function sweepExpired() {
   const rows = await db

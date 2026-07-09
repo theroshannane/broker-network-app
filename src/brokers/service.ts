@@ -34,3 +34,8 @@ export async function getBroker(id: string) {
   const [row] = await db.select().from(brokers).where(eq(brokers.id, id));
   return row ?? null;
 }
+
+export async function getBrokerByPhone(phone: string) {
+  const [row] = await db.select().from(brokers).where(eq(brokers.phone, phone));
+  return row ?? null;
+}

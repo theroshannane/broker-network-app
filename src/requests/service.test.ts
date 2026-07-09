@@ -7,6 +7,7 @@ import {
   approveRequest,
   sweepExpired,
   getRequest,
+  getIncomingRequestsForBroker,
 } from "./service.js";
 
 beforeEach(resetDb);
@@ -55,5 +56,29 @@ describe("contact request", () => {
     await approveRequest(r.id);
     const n = await sweepExpired();
     expect(n).toBe(0);
+  });
+
+  it("getIncomingRequestsForBroker returns pending requests on owner's listings", async () => {
+    const { owner, requester, listing } = await seed();
+    const r = await requestContact({ listingId: listing.id, requesterId: requester.id });
+    const incoming = await getIncomingRequestsForBroker(owner.id);
+    expect(incoming).toHaveLength(1);
+    expect(incoming[0].id).toBe(r.id);
+    expect(incoming[0].listingId).toBe(listing.id);
+  });
+
+  it("getIncomingRequestsForBroker excludes other brokers' listings", async () => {
+    const { requester, listing } = await seed();
+    await requestContact({ listingId: listing.id, requesterId: requester.id });
+    const incoming = await getIncomingRequestsForBroker(requester.id);
+    expect(incoming).toHaveLength(0);
+  });
+
+  it("getIncomingRequestsForBroker excludes approved requests", async () => {
+    const { owner, requester, listing } = await seed();
+    const r = await requestContact({ listingId: listing.id, requesterId: requester.id });
+    await approveRequest(r.id);
+    const incoming = await getIncomingRequestsForBroker(owner.id);
+    expect(incoming).toHaveLength(0);
   });
 });

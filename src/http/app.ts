@@ -1,10 +1,11 @@
 import express from "express";
 import { z } from "zod";
-import { createBroker } from "../brokers/service.js";
+import { createBroker, getBrokerByPhone } from "../brokers/service.js";
 import {
   createListing,
   searchListings,
   countListings,
+  getListingById,
   DEFAULT_PAGE_LIMIT,
   MAX_PAGE_LIMIT,
 } from "../listings/service.js";
@@ -14,6 +15,7 @@ import {
   getRequest,
   getRevealForRequest,
   queuePosition,
+  getIncomingRequestsForBroker,
 } from "../requests/service.js";
 import {
   createRequirement,
@@ -116,6 +118,30 @@ app.get("/listings", async (req, res) => {
     countListings({ locality, txn }),
   ]);
   res.set("X-Total-Count", String(total)).json(results);
+});
+
+app.get("/listings/:id", async (req, res) => {
+  const listing = await getListingById(req.params.id);
+  if (!listing) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.json(listing);
+});
+
+app.get("/brokers/me", requireAuth, async (req, res) => {
+  const auth = (req as import("../auth/middleware.js").AuthedRequest).auth;
+  const broker = await getBrokerByPhone(auth!.phone);
+  if (!broker) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.json(broker);
+});
+
+app.get("/brokers/:id/incoming-requests", async (req, res) => {
+  const incoming = await getIncomingRequestsForBroker(req.params.id);
+  res.json(incoming);
 });
 
 const requestSchema = z.object({
