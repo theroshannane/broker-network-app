@@ -1,6 +1,7 @@
 import { and, eq, isNull, ilike } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { listings } from "../db/schema.js";
+import { generateAlertsForListing } from "../requirements/service.js";
 
 export interface CreateListingInput {
   brokerId: string;
@@ -13,6 +14,7 @@ export interface CreateListingInput {
 
 export async function createListing(input: CreateListingInput) {
   const [row] = await db.insert(listings).values(input).returning();
+  await generateAlertsForListing(row);
   return row;
 }
 

@@ -45,3 +45,20 @@ export const contactRequests = pgTable("contact_requests", {
   slaExpiresAt: timestamp("sla_expires_at").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const requirements = pgTable("requirements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  brokerId: uuid("broker_id").notNull().references(() => brokers.id),
+  txn: txnType("txn").notNull(),
+  locality: text("locality").notNull(),
+  maxBudget: integer("max_budget").notNull(),
+  specs: text("specs"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const alerts = pgTable("alerts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  requirementId: uuid("requirement_id").notNull().references(() => requirements.id),
+  listingId: uuid("listing_id").notNull().references(() => listings.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

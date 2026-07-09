@@ -9,6 +9,10 @@ import {
   getRevealForRequest,
   queuePosition,
 } from "../requests/service.js";
+import {
+  createRequirement,
+  getAlertsForBroker,
+} from "../requirements/service.js";
 
 export const app = express();
 app.use(express.json());
@@ -102,4 +106,27 @@ app.get("/requests/:id", async (req, res) => {
   }
   const pos = await queuePosition(req.params.id);
   res.json({ id: r.id, status: r.status, queuePosition: pos });
+});
+
+const requirementSchema = z.object({
+  brokerId: z.uuid(),
+  txn: z.enum(["sell", "buy", "rent"]),
+  locality: z.string().min(1),
+  maxBudget: z.number().int().positive(),
+  specs: z.string().optional(),
+});
+
+app.post("/requirements", async (req, res) => {
+  const parsed = requirementSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  const requirement = await createRequirement(parsed.data);
+  res.status(201).json(requirement);
+});
+
+app.get("/brokers/:id/alerts", async (req, res) => {
+  const alerts = await getAlertsForBroker(req.params.id);
+  res.json(alerts);
 });
