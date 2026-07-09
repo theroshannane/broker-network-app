@@ -12,6 +12,7 @@ import {
 import {
   createRequirement,
   getAlertsForBroker,
+  smartMatchForRequirement,
 } from "../requirements/service.js";
 import { getParser } from "../ai/parser.js";
 
@@ -146,4 +147,13 @@ app.post("/listings/parse", async (req, res) => {
 app.get("/brokers/:id/alerts", async (req, res) => {
   const alerts = await getAlertsForBroker(req.params.id);
   res.json(alerts);
+});
+
+app.get("/requirements/:id/smart-match", async (req, res) => {
+  const ranked = await smartMatchForRequirement(req.params.id);
+  if (!ranked) {
+    res.status(404).json({ error: "not found" });
+    return;
+  }
+  res.json(ranked);
 });

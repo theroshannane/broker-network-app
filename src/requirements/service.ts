@@ -1,6 +1,7 @@
-import { and, eq, gte, ilike } from "drizzle-orm";
+import { and, eq, gte, ilike, isNull } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { requirements, alerts, listings } from "../db/schema.js";
+import { getMatcher } from "../ai/match.js";
 
 export interface CreateRequirementInput {
   brokerId: string;
@@ -41,6 +42,21 @@ export async function generateAlertsForListing(listing: MatchableListing) {
     .values(matches.map((m) => ({ requirementId: m.id, listingId: listing.id })))
     .returning();
   return rows;
+}
+
+// Ranks all open listings against a saved requirement using the smart matcher.
+// Returns null if the requirement does not exist.
+export async function smartMatchForRequirement(requirementId: string) {
+  const [req] = await db
+    .select()
+    .from(requirements)
+    .where(eq(requirements.id, requirementId));
+  if (!req) return null;
+  const open = await db.select().from(listings).where(isNull(listings.closed));
+  return getMatcher().match(
+    { txn: req.txn, locality: req.locality, maxBudget: req.maxBudget, specs: req.specs },
+    open,
+  );
 }
 
 export async function getAlertsForBroker(brokerId: string) {
