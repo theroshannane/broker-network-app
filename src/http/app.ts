@@ -17,13 +17,20 @@ import {
 import { getParser } from "../ai/parser.js";
 import { requestOtp, verifyOtp } from "../auth/service.js";
 import { requireAuth } from "../auth/middleware.js";
+import { rateLimit } from "./rateLimit.js";
 
 export const app = express();
 app.use(express.json());
 
+const otpRateLimit = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  keyFn: (req) => String(req.body?.phone ?? req.ip ?? "unknown"),
+});
+
 const requestOtpSchema = z.object({ phone: z.string().min(10) });
 
-app.post("/auth/request-otp", async (req, res) => {
+app.post("/auth/request-otp", otpRateLimit, async (req, res) => {
   const parsed = requestOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });
@@ -35,7 +42,7 @@ app.post("/auth/request-otp", async (req, res) => {
 
 const verifyOtpSchema = z.object({ phone: z.string().min(10), code: z.string().length(6) });
 
-app.post("/auth/verify-otp", async (req, res) => {
+app.post("/auth/verify-otp", otpRateLimit, async (req, res) => {
   const parsed = verifyOtpSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });
