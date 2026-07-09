@@ -63,9 +63,61 @@ export const heuristicParser: ListingParser = {
   },
 };
 
-// Returns the active listing parser. Heuristic (deterministic, zero-cost) for now.
-// A real LLM adapter (OpenAI/Anthropic) is an env-gated follow-on that would fall
-// back to heuristicParser when no API key is configured.
-export function getParser(): ListingParser {
+const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+
+type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
+
+const PARSE_SYSTEM_PROMPT =
+  "Extract structured real-estate listing fields from the user's text. " +
+  "Respond with ONLY a JSON object with keys: txn (one of \"sell\", \"buy\", \"rent\", or omit), " +
+  "locality (string or omit), pincode (6-digit string or omit), budget (number in rupees or omit), " +
+  "bhk (integer or omit), specs (string or omit). No prose, no markdown fences.";
+
+// Real LLM adapter. Falls back to the deterministic heuristicParser on any
+// network/API/parse failure so callers always get a usable result.
+export function createOpenAIParser(
+  apiKey: string,
+  fetchImpl: FetchFn = fetch,
+): ListingParser {
+  return {
+    async parse(text: string): Promise<ParsedListing> {
+      try {
+        const res = await fetchImpl(OPENAI_CHAT_URL, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              { role: "system", content: PARSE_SYSTEM_PROMPT },
+              { role: "user", content: text },
+            ],
+            temperature: 0,
+          }),
+        });
+        if (!res.ok) return heuristicParser.parse(text);
+        const data = (await res.json()) as {
+          choices?: Array<{ message?: { content?: string } }>;
+        };
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) return heuristicParser.parse(text);
+        const parsed = JSON.parse(content) as ParsedListing;
+        return parsed;
+      } catch {
+        return heuristicParser.parse(text);
+      }
+    },
+  };
+}
+
+// Returns the active listing parser. Uses OpenAI when OPENAI_API_KEY is set,
+// otherwise falls back to the deterministic heuristic parser.
+export function getParser(
+  env: Record<string, string | undefined> = process.env,
+): ListingParser {
+  const key = env.OPENAI_API_KEY;
+  if (key && key.trim().length > 0) return createOpenAIParser(key);
   return heuristicParser;
 }
