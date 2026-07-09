@@ -13,6 +13,7 @@ import {
   createRequirement,
   getAlertsForBroker,
 } from "../requirements/service.js";
+import { getParser } from "../ai/parser.js";
 
 export const app = express();
 app.use(express.json());
@@ -124,6 +125,22 @@ app.post("/requirements", async (req, res) => {
   }
   const requirement = await createRequirement(parsed.data);
   res.status(201).json(requirement);
+});
+
+const parseSchema = z.object({
+  text: z.string().min(1),
+});
+
+// Parses messy listing text into a structured draft. Does NOT save — the broker
+// reviews and confirms before POST /listings (human-in-the-loop).
+app.post("/listings/parse", async (req, res) => {
+  const parsed = parseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  const draft = await getParser().parse(parsed.data.text);
+  res.json(draft);
 });
 
 app.get("/brokers/:id/alerts", async (req, res) => {
