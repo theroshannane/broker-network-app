@@ -4,6 +4,7 @@ import type { PGlite } from "@electric-sql/pglite";
 // Mirrors src/db/schema.ts. Real Postgres migrations (drizzle-kit) replace this
 // in a later plan once a Postgres server is available.
 const DDL = `
+DROP TABLE IF EXISTS otp_challenges;
 DROP TABLE IF EXISTS alerts;
 DROP TABLE IF EXISTS requirements;
 DROP TABLE IF EXISTS contact_requests;
@@ -63,6 +64,15 @@ CREATE TABLE alerts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   requirement_id uuid NOT NULL REFERENCES requirements(id),
   listing_id uuid NOT NULL REFERENCES listings(id),
+  created_at timestamp NOT NULL DEFAULT now()
+);
+
+CREATE TABLE otp_challenges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  phone text NOT NULL,
+  code_hash text NOT NULL,
+  expires_at timestamp NOT NULL,
+  consumed_at timestamp,
   created_at timestamp NOT NULL DEFAULT now()
 );
 `;

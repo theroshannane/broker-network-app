@@ -15,9 +15,39 @@ import {
   smartMatchForRequirement,
 } from "../requirements/service.js";
 import { getParser } from "../ai/parser.js";
+import { requestOtp, verifyOtp } from "../auth/service.js";
+import { requireAuth } from "../auth/middleware.js";
 
 export const app = express();
 app.use(express.json());
+
+const requestOtpSchema = z.object({ phone: z.string().min(10) });
+
+app.post("/auth/request-otp", async (req, res) => {
+  const parsed = requestOtpSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  await requestOtp(parsed.data.phone);
+  res.status(202).json({ ok: true });
+});
+
+const verifyOtpSchema = z.object({ phone: z.string().min(10), code: z.string().length(6) });
+
+app.post("/auth/verify-otp", async (req, res) => {
+  const parsed = verifyOtpSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  const token = await verifyOtp(parsed.data.phone, parsed.data.code);
+  if (!token) {
+    res.status(401).json({ error: "invalid or expired code" });
+    return;
+  }
+  res.json({ token });
+});
 
 const brokerSchema = z.object({
   phone: z.string().min(10),
@@ -27,7 +57,7 @@ const brokerSchema = z.object({
   pan: z.string().optional(),
 });
 
-app.post("/brokers", async (req, res) => {
+app.post("/brokers", requireAuth, async (req, res) => {
   const parsed = brokerSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });
@@ -46,7 +76,7 @@ const listingSchema = z.object({
   specs: z.string().optional(),
 });
 
-app.post("/listings", async (req, res) => {
+app.post("/listings", requireAuth, async (req, res) => {
   const parsed = listingSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });
@@ -69,7 +99,7 @@ const requestSchema = z.object({
   requesterId: z.uuid(),
 });
 
-app.post("/listings/:id/requests", async (req, res) => {
+app.post("/listings/:id/requests", requireAuth, async (req, res) => {
   const parsed = requestSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });
@@ -82,7 +112,7 @@ app.post("/listings/:id/requests", async (req, res) => {
   res.status(201).json({ id: r.id, status: r.status, slaExpiresAt: r.slaExpiresAt });
 });
 
-app.post("/requests/:id/approve", async (req, res) => {
+app.post("/requests/:id/approve", requireAuth, async (req, res) => {
   const r = await approveRequest(req.params.id);
   if (!r) {
     res.status(404).json({ error: "not found" });
@@ -118,7 +148,7 @@ const requirementSchema = z.object({
   specs: z.string().optional(),
 });
 
-app.post("/requirements", async (req, res) => {
+app.post("/requirements", requireAuth, async (req, res) => {
   const parsed = requirementSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.issues });

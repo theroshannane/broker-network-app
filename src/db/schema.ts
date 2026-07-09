@@ -62,3 +62,12 @@ export const alerts = pgTable("alerts", {
   listingId: uuid("listing_id").notNull().references(() => listings.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const otpChallenges = pgTable("otp_challenges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  phone: text("phone").notNull(),
+  codeHash: text("code_hash").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  consumedAt: timestamp("consumed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
