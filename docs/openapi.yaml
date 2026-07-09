@@ -1,0 +1,424 @@
+openapi: 3.1.0
+info:
+  title: Broker Network API
+  version: 1.0.0
+  description: >
+    P2P real estate broker co-broking network. Verified brokers list
+    properties and connect broker-to-broker via a request/approve/reveal
+    flow with an auto-expiring SLA.
+
+servers:
+  - url: http://localhost:3000
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/request-otp:
+    post:
+      summary: Request a phone OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string, minLength: 10 }
+      responses:
+        "202":
+          description: OTP dispatched (accepted regardless of whether the phone is known)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /auth/verify-otp:
+    post:
+      summary: Verify OTP and receive a bearer token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, code]
+              properties:
+                phone: { type: string, minLength: 10 }
+                code: { type: string, minLength: 6, maxLength: 6 }
+      responses:
+        "200":
+          description: Valid code, token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { description: Invalid or expired code }
+        "429": { $ref: "#/components/responses/TooManyRequests" }
+
+  /brokers:
+    post:
+      summary: Create a broker profile (auto-verifies via RERA/KYC stub)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BrokerInput" }
+      responses:
+        "201":
+          description: Broker created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Broker" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /brokers/{id}/alerts:
+    get:
+      summary: Get saved-requirement alerts for a broker
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Alerts for the broker's requirements
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Alert" }
+
+  /listings:
+    post:
+      summary: Create a listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ListingInput" }
+      responses:
+        "201":
+          description: Listing created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Listing" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    get:
+      summary: Search open listings
+      security: []
+      parameters:
+        - name: locality
+          in: query
+          schema: { type: string }
+        - name: txn
+          in: query
+          schema: { type: string, enum: [sell, buy, rent] }
+        - name: limit
+          in: query
+          description: Page size. Defaults to 20, capped at 100.
+          schema: { type: integer, minimum: 1, maximum: 100 }
+        - name: offset
+          in: query
+          description: Number of records to skip. Defaults to 0.
+          schema: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: Matching open listings
+          headers:
+            X-Total-Count:
+              description: Total matching listings, ignoring limit/offset
+              schema: { type: integer }
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Listing" }
+
+  /listings/parse:
+    post:
+      summary: Parse freeform listing text into a structured draft (human-in-the-loop, not saved)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1 }
+      responses:
+        "200":
+          description: Parsed draft
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ParsedListingDraft" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /listings/{id}/requests:
+    post:
+      summary: Request contact reveal for a listing
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requesterId]
+              properties:
+                requesterId: { type: string, format: uuid }
+      responses:
+        "201":
+          description: Contact request created, pending approval, 48h SLA
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [pending, approved, expired] }
+                  slaExpiresAt: { type: string, format: date-time }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /requests/{id}:
+    get:
+      summary: Get a contact request's status and queue position
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Request status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [pending, approved, expired] }
+                  queuePosition: { type: integer, nullable: true }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /requests/{id}/approve:
+    post:
+      summary: Approve a pending contact request
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Request approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  status: { type: string, enum: [pending, approved, expired] }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /requests/{id}/contact:
+    get:
+      summary: Reveal contact details for an approved request
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Revealed contact details
+          content:
+            application/json:
+              schema:
+                type: object
+        "403": { description: Request not approved }
+
+  /requirements:
+    post:
+      summary: Create a saved requirement (active search)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RequirementInput" }
+      responses:
+        "201":
+          description: Requirement created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Requirement" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /requirements/{id}/smart-match:
+    get:
+      summary: Rank open listings against a requirement (AI smart match)
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/IdParam"
+      responses:
+        "200":
+          description: Ranked matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    listing: { $ref: "#/components/schemas/Listing" }
+                    score: { type: number }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >
+        Token issued by POST /auth/verify-otp. Required on all state-changing
+        endpoints (broker/listing/requirement creation, contact requests,
+        approvals).
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                oneOf:
+                  - type: string
+                  - type: array
+    Unauthorized:
+      description: Missing or invalid bearer token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+
+  schemas:
+    Broker:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        phone: { type: string }
+        name: { type: string }
+        agencyName: { type: string, nullable: true }
+        reraId: { type: string, nullable: true }
+        pan: { type: string, nullable: true }
+        verification: { type: string, enum: [pending, verified, rejected] }
+        createdAt: { type: string, format: date-time }
+
+    BrokerInput:
+      type: object
+      required: [phone, name]
+      properties:
+        phone: { type: string, minLength: 10 }
+        name: { type: string, minLength: 1 }
+        agencyName: { type: string }
+        reraId: { type: string }
+        pan: { type: string }
+
+    Listing:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        brokerId: { type: string, format: uuid }
+        txn: { type: string, enum: [sell, buy, rent] }
+        locality: { type: string }
+        pincode: { type: string }
+        budget: { type: integer }
+        specs: { type: string, nullable: true }
+        closed: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    ListingInput:
+      type: object
+      required: [brokerId, txn, locality, pincode, budget]
+      properties:
+        brokerId: { type: string, format: uuid }
+        txn: { type: string, enum: [sell, buy, rent] }
+        locality: { type: string, minLength: 1 }
+        pincode: { type: string, minLength: 6 }
+        budget: { type: integer, minimum: 1 }
+        specs: { type: string }
+
+    ParsedListingDraft:
+      type: object
+      properties:
+        txn: { type: string, enum: [sell, buy, rent] }
+        locality: { type: string }
+        pincode: { type: string }
+        budget: { type: integer }
+        bhk: { type: integer }
+        specs: { type: string }
+
+    Requirement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        brokerId: { type: string, format: uuid }
+        txn: { type: string, enum: [sell, buy, rent] }
+        locality: { type: string }
+        maxBudget: { type: integer }
+        specs: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    RequirementInput:
+      type: object
+      required: [brokerId, txn, locality, maxBudget]
+      properties:
+        brokerId: { type: string, format: uuid }
+        txn: { type: string, enum: [sell, buy, rent] }
+        locality: { type: string, minLength: 1 }
+        maxBudget: { type: integer, minimum: 1 }
+        specs: { type: string }
+
+    Alert:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        requirementId: { type: string, format: uuid }
+        listingId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
