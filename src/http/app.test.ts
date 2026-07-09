@@ -45,5 +45,26 @@ describe("api", () => {
     const res = await request(app).get("/listings?locality=Vashi");
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
+    expect(res.headers["x-total-count"]).toBe("1");
+  });
+
+  it("GET /listings paginates with limit and offset", async () => {
+    const broker = await request(app)
+      .post("/brokers")
+      .set(...authHeader())
+      .send({ phone: "9993335555", name: "Priya", reraId: "R-2" });
+    for (let i = 0; i < 3; i += 1) {
+      await request(app)
+        .post("/listings")
+        .set(...authHeader())
+        .send({
+          brokerId: broker.body.id, txn: "rent",
+          locality: "Chembur", pincode: "400071", budget: 30000 + i,
+        });
+    }
+    const res = await request(app).get("/listings?locality=Chembur&limit=2&offset=1");
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(2);
+    expect(res.headers["x-total-count"]).toBe("3");
   });
 });

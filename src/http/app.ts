@@ -1,7 +1,13 @@
 import express from "express";
 import { z } from "zod";
 import { createBroker } from "../brokers/service.js";
-import { createListing, searchListings } from "../listings/service.js";
+import {
+  createListing,
+  searchListings,
+  countListings,
+  DEFAULT_PAGE_LIMIT,
+  MAX_PAGE_LIMIT,
+} from "../listings/service.js";
 import {
   requestContact,
   approveRequest,
@@ -98,8 +104,17 @@ app.get("/listings", async (req, res) => {
   const txn = ["sell", "buy", "rent"].includes(String(req.query.txn))
     ? (req.query.txn as "sell" | "buy" | "rent")
     : undefined;
-  const results = await searchListings({ locality, txn });
-  res.json(results);
+  const rawLimit = Number(req.query.limit);
+  const rawOffset = Number(req.query.offset);
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0
+    ? Math.min(rawLimit, MAX_PAGE_LIMIT)
+    : DEFAULT_PAGE_LIMIT;
+  const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+  const [results, total] = await Promise.all([
+    searchListings({ locality, txn, limit, offset }),
+    countListings({ locality, txn }),
+  ]);
+  res.set("X-Total-Count", String(total)).json(results);
 });
 
 const requestSchema = z.object({
