@@ -51,6 +51,51 @@ function extractLocality(text: string): string | undefined {
   return loc.length > 0 ? loc : undefined;
 }
 
+const DIVIDER_LINE = /^[-*_=]{3,}$/;
+const NUMBERED_LINE = /^\s*\d+[.)]\s+/;
+
+// Splits a raw multi-listing text dump (e.g. a forwarded WhatsApp broker-group
+// message) into individual listing chunks. Used by the bulk-ingest flow, where
+// each chunk is then run through the existing single-item parser. Never
+// auto-saves — the broker still reviews each draft before publish.
+export function splitListingDump(text: string): string[] {
+  const lines = text.split("\n");
+
+  // Group consecutive non-blank, non-divider lines into blocks.
+  const blocks: string[] = [];
+  let current: string[] = [];
+  for (const line of lines) {
+    if (line.trim().length === 0 || DIVIDER_LINE.test(line.trim())) {
+      if (current.length > 0) blocks.push(current.join("\n"));
+      current = [];
+      continue;
+    }
+    current.push(line);
+  }
+  if (current.length > 0) blocks.push(current.join("\n"));
+
+  // Within each block, split further on numbered-list markers if present.
+  const chunks: string[] = [];
+  for (const block of blocks) {
+    const blockLines = block.split("\n");
+    if (blockLines.some((l) => NUMBERED_LINE.test(l))) {
+      let entry: string[] = [];
+      for (const line of blockLines) {
+        if (NUMBERED_LINE.test(line) && entry.length > 0) {
+          chunks.push(entry.join("\n").trim());
+          entry = [];
+        }
+        entry.push(line.replace(NUMBERED_LINE, ""));
+      }
+      if (entry.length > 0) chunks.push(entry.join("\n").trim());
+    } else {
+      chunks.push(block.trim());
+    }
+  }
+
+  return chunks.filter((c) => c.length > 0);
+}
+
 export const heuristicParser: ListingParser = {
   async parse(text: string): Promise<ParsedListing> {
     return {

@@ -22,7 +22,7 @@ import {
   getAlertsForBroker,
   smartMatchForRequirement,
 } from "../requirements/service.js";
-import { getParser } from "../ai/parser.js";
+import { getParser, splitListingDump } from "../ai/parser.js";
 import { requestOtp, verifyOtp } from "../auth/service.js";
 import { requireAuth } from "../auth/middleware.js";
 import { rateLimit } from "./rateLimit.js";
@@ -221,6 +221,32 @@ app.post("/listings/parse", async (req, res) => {
   }
   const draft = await getParser().parse(parsed.data.text);
   res.json(draft);
+});
+
+const parseBulkSchema = z.object({
+  text: z.string().min(1),
+});
+
+// Splits a raw multi-listing dump (e.g. a forwarded WhatsApp broker-group
+// message) into chunks and parses each into a structured draft. Does NOT
+// save — the broker reviews/selects drafts before individually confirming
+// via POST /listings (human-in-the-loop, same contract as /listings/parse).
+app.post("/listings/parse-bulk", async (req, res) => {
+  const parsed = parseBulkSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.issues });
+    return;
+  }
+  const chunks = splitListingDump(parsed.data.text);
+  if (chunks.length === 0) {
+    res.status(400).json({ error: "no parseable listings found in text" });
+    return;
+  }
+  const parser = getParser();
+  const drafts = await Promise.all(
+    chunks.map(async (text) => ({ text, draft: await parser.parse(text) })),
+  );
+  res.json({ drafts });
 });
 
 app.get("/brokers/:id/alerts", async (req, res) => {

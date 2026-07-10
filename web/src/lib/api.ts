@@ -1,6 +1,7 @@
 import type {
   Alert,
   Broker,
+  BulkDraft,
   ContactRequestSummary,
   ContactReveal,
   IncomingRequest,
@@ -150,6 +151,10 @@ export function getIncomingRequests(brokerId: string): Promise<IncomingRequest[]
 
 export function parseListingText(text: string): Promise<ParsedListing> {
   return apiFetch("/listings/parse", { method: "POST", body: { text } });
+}
+
+export function parseListingBulk(text: string): Promise<{ drafts: BulkDraft[] }> {
+  return apiFetch("/listings/parse-bulk", { method: "POST", body: { text } });
 }
 
 export interface CreateRequirementInput {

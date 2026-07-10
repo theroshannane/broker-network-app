@@ -16,6 +16,7 @@ export function Nav() {
           <div className="flex items-center gap-4 text-sm">
             <Link href="/listings">Listings</Link>
             <Link href="/listings/new">Post</Link>
+            <Link href="/listings/bulk">Bulk ingest</Link>
             <Link href="/requests">Sent</Link>
             <Link href="/requests/incoming">Incoming</Link>
             <Link href="/requirements/new">Requirement</Link>

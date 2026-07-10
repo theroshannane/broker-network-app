@@ -60,6 +60,11 @@ export interface ParsedListing {
   specs?: string;
 }
 
+export interface BulkDraft {
+  text: string;
+  draft: ParsedListing;
+}
+
 export interface Requirement {
   id: string;
   brokerId: string;
