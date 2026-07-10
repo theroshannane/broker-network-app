@@ -50,3 +50,33 @@ export interface ContactReveal {
   phone: string;
   name: string;
 }
+
+export interface ParsedListing {
+  txn?: Txn;
+  locality?: string;
+  pincode?: string;
+  budget?: number;
+  bhk?: number;
+  specs?: string;
+}
+
+export interface Requirement {
+  id: string;
+  brokerId: string;
+  txn: Txn;
+  locality: string;
+  maxBudget: number;
+  specs: string | null;
+  createdAt: string;
+}
+
+export interface Alert {
+  id: string;
+  createdAt: string;
+  listing: Listing;
+}
+
+export interface ScoredListing {
+  listing: Listing;
+  score: number;
+}

@@ -1,10 +1,14 @@
 import type {
+  Alert,
   Broker,
   ContactRequestSummary,
   ContactReveal,
   IncomingRequest,
   Listing,
+  ParsedListing,
   RequestDetail,
+  Requirement,
+  ScoredListing,
   Txn,
 } from "./types";
 
@@ -142,4 +146,28 @@ export function getContactReveal(id: string): Promise<ContactReveal> {
 
 export function getIncomingRequests(brokerId: string): Promise<IncomingRequest[]> {
   return apiFetch(`/brokers/${brokerId}/incoming-requests`);
+}
+
+export function parseListingText(text: string): Promise<ParsedListing> {
+  return apiFetch("/listings/parse", { method: "POST", body: { text } });
+}
+
+export interface CreateRequirementInput {
+  brokerId: string;
+  txn: Txn;
+  locality: string;
+  maxBudget: number;
+  specs?: string;
+}
+
+export function createRequirement(input: CreateRequirementInput): Promise<Requirement> {
+  return apiFetch("/requirements", { method: "POST", body: input, auth: true });
+}
+
+export function getAlerts(brokerId: string): Promise<Alert[]> {
+  return apiFetch(`/brokers/${brokerId}/alerts`);
+}
+
+export function getSmartMatch(requirementId: string): Promise<ScoredListing[]> {
+  return apiFetch(`/requirements/${requirementId}/smart-match`);
 }

@@ -18,6 +18,8 @@ export function Nav() {
             <Link href="/listings/new">Post</Link>
             <Link href="/requests">Sent</Link>
             <Link href="/requests/incoming">Incoming</Link>
+            <Link href="/requirements/new">Requirement</Link>
+            <Link href="/alerts">Alerts</Link>
             <span className="text-gray-500">{broker?.name ?? "..."}</span>
             <button onClick={logout} className="text-red-600">
               Log out
