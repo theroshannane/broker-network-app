@@ -1,0 +1,32 @@
+# Render blueprint for the broker-network API.
+# Deploy: push to a Render-connected repo, then "New > Blueprint" and select this file.
+# PGlite is file-backed on a persistent disk (single instance only — see note below).
+services:
+  - type: web
+    name: broker-network-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    # PGlite is an in-process WASM Postgres: it is NOT safe across multiple
+    # instances or replicas sharing one disk. Keep this at a single instance.
+    numInstances: 1
+    healthCheckPath: /listings
+    autoDeploy: true
+    disk:
+      name: pglite-data
+      mountPath: /data/pglite
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: PGLITE_DIR
+        value: /data/pglite
+      - key: SWEEP_INTERVAL_MS
+        value: "900000"
+      # Set these as secrets in the Render dashboard (sync:false => not stored in repo).
+      - key: AUTH_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SUREPASS_API_TOKEN
+        sync: false
