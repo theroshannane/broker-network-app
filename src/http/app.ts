@@ -37,7 +37,10 @@ const otpRateLimit = rateLimit({
   keyFn: (req) => String(req.body?.phone ?? req.ip ?? "unknown"),
 });
 
-const requestOtpSchema = z.object({ phone: z.string().min(10) });
+const requestOtpSchema = z.object({
+  phone: z.string().min(10),
+  email: z.email().optional(),
+});
 
 app.post("/auth/request-otp", otpRateLimit, async (req, res) => {
   const parsed = requestOtpSchema.safeParse(req.body);
@@ -45,7 +48,7 @@ app.post("/auth/request-otp", otpRateLimit, async (req, res) => {
     res.status(400).json({ error: parsed.error.issues });
     return;
   }
-  await requestOtp(parsed.data.phone);
+  await requestOtp(parsed.data.phone, parsed.data.email);
   res.status(202).json({ ok: true });
 });
 
@@ -71,6 +74,7 @@ const brokerSchema = z.object({
   agencyName: z.string().optional(),
   reraId: z.string().optional(),
   pan: z.string().optional(),
+  email: z.email().optional(),
 });
 
 app.post("/brokers", requireAuth, async (req, res) => {

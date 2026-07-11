@@ -16,4 +16,12 @@ describe("otp", () => {
     const p = getOtpProvider();
     await expect(p.send("9990000000", "123456")).resolves.toBeUndefined();
   });
+
+  it("selects the console provider when SMTP_HOST is unset", () => {
+    expect(getOtpProvider({}).name).toBe("console");
+  });
+
+  it("selects the email provider when SMTP_HOST is set", () => {
+    expect(getOtpProvider({ SMTP_HOST: "smtp.example.com" }).name).toBe("email");
+  });
 });

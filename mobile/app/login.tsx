@@ -7,6 +7,7 @@ export default function Login() {
   const { requestOtp, verifyOtp } = useAuth();
   const router = useRouter();
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [busy, setBusy] = useState(false);
@@ -16,7 +17,7 @@ export default function Login() {
     setError(null);
     setBusy(true);
     try {
-      await requestOtp(phone.trim());
+      await requestOtp(phone.trim(), email.trim() || undefined);
       setStep("code");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send OTP");
@@ -41,7 +42,7 @@ export default function Login() {
   return (
     <Screen>
       <Title>Broker sign in</Title>
-      <Subtitle>Verified brokers only. We send a one-time code to your phone.</Subtitle>
+      <Subtitle>Verified brokers only. We email you a one-time code.</Subtitle>
 
       <Field
         label="Phone number"
@@ -50,6 +51,16 @@ export default function Login() {
         editable={step === "phone"}
         keyboardType="phone-pad"
         placeholder="+9198XXXXXXXX"
+        autoCapitalize="none"
+      />
+
+      <Field
+        label="Email"
+        value={email}
+        onChangeText={setEmail}
+        editable={step === "phone"}
+        keyboardType="email-address"
+        placeholder="you@agency.in"
         autoCapitalize="none"
       />
 
@@ -70,7 +81,12 @@ export default function Login() {
           />
         </>
       ) : (
-        <Button label="Send code" onPress={onRequest} loading={busy} disabled={!phone.trim()} />
+        <Button
+          label="Send code"
+          onPress={onRequest}
+          loading={busy}
+          disabled={!phone.trim() || !email.trim()}
+        />
       )}
 
       <ErrorText>{error}</ErrorText>

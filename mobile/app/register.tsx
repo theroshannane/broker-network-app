@@ -7,6 +7,7 @@ export default function Register() {
   const { phone, register } = useAuth();
   const router = useRouter();
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [agencyName, setAgencyName] = useState("");
   const [reraId, setReraId] = useState("");
   const [pan, setPan] = useState("");
@@ -24,6 +25,7 @@ export default function Register() {
       await register({
         phone,
         name: name.trim(),
+        email: email.trim() || undefined,
         agencyName: agencyName.trim() || undefined,
         reraId: reraId.trim() || undefined,
         pan: pan.trim() || undefined,
@@ -44,6 +46,14 @@ export default function Register() {
       </Subtitle>
 
       <Field label="Full name" value={name} onChangeText={setName} placeholder="Your name" />
+      <Field
+        label="Email (optional)"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        placeholder="you@agency.in"
+      />
       <Field
         label="Agency name (optional)"
         value={agencyName}

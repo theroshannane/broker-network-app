@@ -66,8 +66,8 @@ async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
-export function requestOtp(phone: string): Promise<{ ok: boolean }> {
-  return apiFetch("/auth/request-otp", { method: "POST", body: { phone } });
+export function requestOtp(phone: string, email?: string): Promise<{ ok: boolean }> {
+  return apiFetch("/auth/request-otp", { method: "POST", body: { phone, email } });
 }
 
 export function verifyOtp(phone: string, code: string): Promise<{ token: string }> {
@@ -80,6 +80,7 @@ export interface CreateBrokerInput {
   agencyName?: string;
   reraId?: string;
   pan?: string;
+  email?: string;
 }
 
 export function createBroker(input: CreateBrokerInput): Promise<Broker> {

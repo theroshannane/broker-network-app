@@ -9,6 +9,7 @@ export interface CreateBrokerInput {
   agencyName?: string;
   reraId?: string;
   pan?: string;
+  email?: string;
 }
 
 export async function createBroker(input: CreateBrokerInput) {
@@ -24,6 +25,7 @@ export async function createBroker(input: CreateBrokerInput) {
       agencyName: input.agencyName,
       reraId: input.reraId,
       pan: input.pan,
+      email: input.email,
       verification,
     })
     .returning();

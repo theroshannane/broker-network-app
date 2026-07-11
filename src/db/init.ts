@@ -24,6 +24,7 @@ CREATE TABLE brokers (
   agency_name text,
   rera_id text,
   pan text,
+  email text,
   verification verification_status NOT NULL DEFAULT 'pending',
   created_at timestamp NOT NULL DEFAULT now()
 );
@@ -96,9 +97,11 @@ CREATE TABLE IF NOT EXISTS brokers (
   agency_name text,
   rera_id text,
   pan text,
+  email text,
   verification verification_status NOT NULL DEFAULT 'pending',
   created_at timestamp NOT NULL DEFAULT now()
 );
+ALTER TABLE brokers ADD COLUMN IF NOT EXISTS email text;
 
 CREATE TABLE IF NOT EXISTS listings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

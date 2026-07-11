@@ -27,7 +27,7 @@ interface AuthState {
   broker: Broker | null;
   loading: boolean;
   isAuthenticated: boolean;
-  requestOtp: (phone: string) => Promise<void>;
+  requestOtp: (phone: string, email?: string) => Promise<void>;
   verifyOtp: (phone: string, code: string) => Promise<{ hasBroker: boolean }>;
   register: (input: CreateBrokerInput) => Promise<void>;
   logout: () => void;
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function requestOtp(phoneNumber: string) {
-    await apiRequestOtp(phoneNumber);
+  async function requestOtp(phoneNumber: string, email?: string) {
+    await apiRequestOtp(phoneNumber, email);
   }
 
   async function verifyOtp(phoneNumber: string, code: string) {

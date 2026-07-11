@@ -15,12 +15,19 @@ function getAuthSecret(): string {
   return secret;
 }
 
-export async function requestOtp(phone: string): Promise<void> {
+export async function requestOtp(phone: string, email?: string): Promise<void> {
   const code = generateCode();
   const codeHash = hashCode(code);
   const expiresAt = new Date(Date.now() + OTP_TTL_SECONDS * 1000);
   await db.insert(otpChallenges).values({ phone, codeHash, expiresAt });
-  await getOtpProvider().send(phone, code);
+  // Delivery destination: explicit email arg (register/login form) wins, else a
+  // known broker's stored email, else the phone (console/SMS fallback).
+  let destination = email;
+  if (!destination) {
+    const [broker] = await db.select().from(brokers).where(eq(brokers.phone, phone));
+    destination = broker?.email ?? undefined;
+  }
+  await getOtpProvider().send(destination ?? phone, code);
 }
 
 // Verifies an OTP for phone. On success, consumes the challenge and returns a

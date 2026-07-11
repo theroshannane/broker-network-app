@@ -21,6 +21,7 @@ export const brokers = pgTable("brokers", {
   agencyName: text("agency_name"),
   reraId: text("rera_id"),
   pan: text("pan"),
+  email: text("email"),
   verification: verificationStatus("verification").notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -13,6 +13,7 @@ export default function LoginPage() {
 
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [agencyName, setAgencyName] = useState("");
@@ -26,7 +27,7 @@ export default function LoginPage() {
     setError(null);
     setBusy(true);
     try {
-      await requestOtp(phone);
+      await requestOtp(phone, email || undefined);
       setStep("code");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "failed to request code");
@@ -64,6 +65,7 @@ export default function LoginPage() {
         agencyName: agencyName || undefined,
         reraId: reraId || undefined,
         pan: pan || undefined,
+        email: email || undefined,
       });
       router.replace("/listings");
     } catch (err) {
@@ -91,6 +93,19 @@ export default function LoginPage() {
               onChange={(e) => setPhone(e.target.value)}
               className="mt-1 w-full border border-gray-300 rounded px-3 py-2"
             />
+          </label>
+          <label className="text-sm">
+            Email
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full border border-gray-300 rounded px-3 py-2"
+            />
+            <span className="mt-1 block text-xs text-gray-500">
+              We email your one-time code here.
+            </span>
           </label>
           <button
             type="submit"
