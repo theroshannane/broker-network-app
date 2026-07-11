@@ -17,7 +17,7 @@ export default function RootLayout() {
             contentStyle: { backgroundColor: theme.color.bg },
           }}
         >
-          <Stack.Screen name="index" options={{ title: "BrokerSetu" }} />
+          <Stack.Screen name="index" options={{ title: "CoBroker" }} />
           <Stack.Screen name="login" options={{ title: "Sign in" }} />
           <Stack.Screen name="register" options={{ title: "Create profile" }} />
           <Stack.Screen name="listings/index" options={{ title: "Listings" }} />

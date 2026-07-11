@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "BrokerNet",
-    "slug": "broker-network",
+    "name": "CoBroker",
+    "slug": "cobroker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "in.brokernet.app",
+      "package": "in.cobroker.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -26,6 +26,6 @@
       "expo-router",
       "expo-secure-store"
     ],
-    "scheme": "brokernet"
+    "scheme": "cobroker"
   }
 }

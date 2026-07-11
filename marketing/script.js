@@ -1,4 +1,4 @@
-// BrokerSetu marketing — light progressive enhancement only.
+// CoBroker marketing — light progressive enhancement only.
 
 // Current year in footer.
 const yearEl = document.getElementById("year");

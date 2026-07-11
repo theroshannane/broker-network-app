@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Broker Network",
+  title: "CoBroker",
   description: "P2P broker-to-broker real estate network",
 };
 
