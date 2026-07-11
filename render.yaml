@@ -1,32 +1,41 @@
 # Render blueprint for the broker-network API.
 # Deploy: push to a Render-connected repo, then "New > Blueprint" and select this file.
-# PGlite is file-backed on a persistent disk (single instance only — see note below).
+# Production uses Neon Postgres over TCP (DATABASE_URL). Do NOT set PGLITE_DIR in
+# prod: PGlite is an in-process WASM Postgres that OOMs Render free 512Mi at boot.
+# The db layer (src/db/client.ts) selects node-postgres when DATABASE_URL is set,
+# and only falls back to PGlite (for local/tests) when it is unset.
 services:
   - type: web
     name: broker-network-api
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter
-    # PGlite is an in-process WASM Postgres: it is NOT safe across multiple
-    # instances or replicas sharing one disk. Keep this at a single instance.
+    plan: free
     numInstances: 1
     healthCheckPath: /listings
     autoDeploy: true
-    disk:
-      name: pglite-data
-      mountPath: /data/pglite
-      sizeGB: 1
     envVars:
       - key: PORT
         value: "3000"
-      - key: PGLITE_DIR
-        value: /data/pglite
       - key: SWEEP_INTERVAL_MS
         value: "900000"
       # Set these as secrets in the Render dashboard (sync:false => not stored in repo).
+      # DATABASE_URL is the Neon Postgres connection string (required in prod).
+      - key: DATABASE_URL
+        sync: false
       - key: AUTH_SECRET
         sync: false
-      - key: OPENAI_API_KEY
+      # OTP-over-email (optional). When SMTP_HOST is set the login OTP is emailed;
+      # otherwise it falls back to the console provider (no email sent).
+      - key: SMTP_HOST
         sync: false
-      - key: SUREPASS_API_TOKEN
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      # LLM listing parser / smart-match (optional; heuristic fallback when unset).
+      - key: OPENAI_API_KEY
         sync: false

@@ -13,9 +13,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 COPY --from=build /app/dist ./dist
 
-RUN mkdir -p /data/pglite
-VOLUME ["/data/pglite"]
-ENV PGLITE_DIR=/data/pglite
+# Production talks to Neon Postgres via DATABASE_URL (set in the Render env).
+# Do NOT bake PGLITE_DIR here: PGlite is an in-process WASM Postgres kept only
+# for local/tests, and it OOMs Render free 512Mi at boot.
 
 EXPOSE 3000
 CMD ["node", "dist/index.js"]
