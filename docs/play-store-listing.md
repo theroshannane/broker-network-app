@@ -43,8 +43,8 @@ CoBroker is a professional networking tool for licensed real estate brokers.
 **Category:** Business (alt: House & Home)
 **Tags:** real estate, brokers, co-broking, property, networking
 **Contact email:** support@cobroker.in
-**Privacy policy URL:** https://<your-marketing-domain>/privacy.html
-  (privacy page already built at marketing/privacy.html — deploy the marketing site, or host this single file, and paste the public URL here)
+**Privacy policy URL:** https://cobroker.beingrealestate.com/privacy.html
+  (live, HTTP 200; paste this into Play Console → App content → Privacy policy)
 
 ## Data safety form (Play Console → App content → Data safety)
 
