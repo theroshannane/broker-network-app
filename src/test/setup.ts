@@ -11,7 +11,7 @@ import {
 
 // Each test file re-imports this module (Vitest isolates modules per file),
 // getting a fresh in-memory PGlite instance. Bootstrap schema once here.
-await initSchema(client);
+await initSchema();
 
 export async function resetDb() {
   await db.delete(alerts);
