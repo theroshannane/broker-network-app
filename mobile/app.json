@@ -2,6 +2,7 @@
   "expo": {
     "name": "CoBroker",
     "slug": "cobroker",
+    "owner": "growfies",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -26,6 +27,12 @@
       "expo-router",
       "expo-secure-store"
     ],
-    "scheme": "cobroker"
+    "scheme": "cobroker",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7935544b-7454-430b-8cf4-41e4eb2d0358"
+      }
+    }
   }
 }
